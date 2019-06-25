@@ -1,0 +1,13 @@
+name: jaguar_dart_example
+
+environment:
+  sdk: '>=2.2.0 <3.0.0'
+
+dependencies:
+  jaguar_query: ^2.2.8
+  jaguar_orm: ^2.2.6
+
+dev_dependencies:
+  jaguar_query_postgres: ^2.2.6
+  build_runner: ^1.2.3
+  jaguar_orm_gen: ^2.2.27
