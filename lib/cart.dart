@@ -5,22 +5,21 @@ import 'cart_item.dart';
 part 'cart.jorm.dart';
 
 class Cart {
-  @PrimaryKey()
+  @primaryKey
   int id;
 
-  @Column(uniqueGroup: 'beverages_id', isNullable: true)
+  @Unique(group: 'beverages_id')
   int beverages_id;
 
-  @Column(uniqueGroup: 'item_id', isNullable: true)
+  @Unique(group: 'item_id')
   int item_id;
 
-  @HasMany(CartItemBean)
+  @HasMany(CartItemBean, linkBy: 'beverages_fkey')
   List<CartItem> beverages;
 
-  @HasOne(CartItemBean)
+  @HasOne(CartItemBean, linkBy: 'item_fkey')
   CartItem item;
 
-  @Column(isNullable: true)
   int amount;
 
   Cart({this.id, this.amount = 0, this.beverages_id = 0, this.item_id = 0, this.beverages = const [], this.item});

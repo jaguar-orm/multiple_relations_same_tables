@@ -11,3 +11,12 @@ dev_dependencies:
   jaguar_query_postgres: ^2.2.6
   build_runner: ^1.2.3
   jaguar_orm_gen: ^2.2.27
+
+dependency_overrides:
+  jaguar_query:
+    path: ../../../jaguar/jaguar_orm/query
+  jaguar_orm:
+    path: ../../../jaguar/jaguar_orm/orm
+  jaguar_orm_gen:
+    path: ../../../jaguar/jaguar_orm/generator
+  build_runner:

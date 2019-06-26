@@ -5,22 +5,19 @@ import 'package:jaguar_dart_example/cart.dart';
 part 'cart_item.jorm.dart';
 
 class CartItem {
-  @PrimaryKey()
+  @primaryKey
   int id;
 
-  @Column(isNullable: true)
   int amount;
 
-  @Column(isNullable: true)
   String product;
 
-  @Column(isNullable: true)
   int quantity;
 
-  @BelongsTo(CartBean, isNullable: true, refCol: 'beverages_id')
+  @BelongsTo.many(CartBean, references: 'beverages_id', link: 'beverages_fkey')
   int cartBeveragesId;
 
-  @BelongsTo(CartBean, isNullable: true, refCol: 'item_id')
+  @BelongsTo(CartBean, references: 'item_id', link: 'item_fkey')
   int cartItemId;
 
   CartItem({this.amount, this.product, this.quantity, this.id, this.cartBeveragesId, this.cartItemId});

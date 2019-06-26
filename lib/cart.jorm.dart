@@ -63,11 +63,25 @@ abstract class _CartBean implements Bean<Cart> {
 
   Future<void> createTable({bool ifNotExists = false}) async {
     final st = Sql.create(tableName, ifNotExists: ifNotExists);
-    st.addInt(id.name, primary: true, isNullable: false);
-    st.addInt(beverages_id.name,
-        isNullable: false, uniqueGroup: "beverages_id");
-    st.addInt(item_id.name, isNullable: false, uniqueGroup: "item_id");
-    st.addInt(amount.name, isNullable: true);
+    st.addByType(
+      id.name,
+      Int(),
+      isPrimary: true,
+    );
+    st.addByType(
+      beverages_id.name,
+      Int(),
+      constraints: [Unique(group: 'beverages_id')],
+    );
+    st.addByType(
+      item_id.name,
+      Int(),
+      constraints: [Unique(group: 'item_id')],
+    );
+    st.addByType(
+      amount.name,
+      Int(),
+    );
     return adapter.createTable(st);
   }
 
@@ -82,14 +96,15 @@ abstract class _CartBean implements Bean<Cart> {
       Cart newModel;
       if (model.beverages != null) {
         newModel ??= await find(model.id);
-        model.beverages.forEach((x) => cartItemBean.associateCart(x, newModel));
+        model.beverages.forEach(
+            (x) => cartItemBean.associateCart_forbeverages_fkey(x, newModel));
         for (final child in model.beverages) {
           await cartItemBean.insert(child, cascade: cascade);
         }
       }
       if (model.item != null) {
         newModel ??= await find(model.id);
-        cartItemBean.associateCart(model.item, newModel);
+        cartItemBean.associateCart_foritem_fkey(model.item, newModel);
         await cartItemBean.insert(model.item, cascade: cascade);
       }
     }
@@ -129,14 +144,15 @@ abstract class _CartBean implements Bean<Cart> {
       Cart newModel;
       if (model.beverages != null) {
         newModel ??= await find(model.id);
-        model.beverages.forEach((x) => cartItemBean.associateCart(x, newModel));
+        model.beverages.forEach(
+            (x) => cartItemBean.associateCart_forbeverages_fkey(x, newModel));
         for (final child in model.beverages) {
           await cartItemBean.upsert(child, cascade: cascade);
         }
       }
       if (model.item != null) {
         newModel ??= await find(model.id);
-        cartItemBean.associateCart(model.item, newModel);
+        cartItemBean.associateCart_foritem_fkey(model.item, newModel);
         await cartItemBean.upsert(model.item, cascade: cascade);
       }
     }
@@ -172,17 +188,17 @@ abstract class _CartBean implements Bean<Cart> {
       bool associate = false,
       Set<String> only,
       bool onlyNonNull = false}) async {
-    final Update update = updater
-        .where(this.id.eq(model.id))
-        .setMany(toSetColumns(model, only: only, onlyNonNull: onlyNonNull));
+    final Update update = updater.where(this.id.eq(model.id)).setMany(
+        toSetColumns(model,
+            only: only, onlyNonNull: onlyNonNull, update: true));
     final ret = adapter.update(update);
     if (cascade) {
       Cart newModel;
       if (model.beverages != null) {
         if (associate) {
           newModel ??= await find(model.id);
-          model.beverages
-              .forEach((x) => cartItemBean.associateCart(x, newModel));
+          model.beverages.forEach(
+              (x) => cartItemBean.associateCart_forbeverages_fkey(x, newModel));
         }
         for (final child in model.beverages) {
           await cartItemBean.update(child,
@@ -192,7 +208,7 @@ abstract class _CartBean implements Bean<Cart> {
       if (model.item != null) {
         if (associate) {
           newModel ??= await find(model.id);
-          cartItemBean.associateCart(model.item, newModel);
+          cartItemBean.associateCart_foritem_fkey(model.item, newModel);
         }
         await cartItemBean.update(model.item,
             cascade: cascade, associate: associate);
@@ -217,8 +233,9 @@ abstract class _CartBean implements Bean<Cart> {
       final List<Expression> where = [];
       for (var i = 0; i < models.length; ++i) {
         var model = models[i];
-        data.add(
-            toSetColumns(model, only: only, onlyNonNull: onlyNonNull).toList());
+        data.add(toSetColumns(model,
+                only: only, onlyNonNull: onlyNonNull, update: true)
+            .toList());
         where.add(this.id.eq(model.id));
       }
       final UpdateMany update = updaters.addAll(data, where);
@@ -241,10 +258,9 @@ abstract class _CartBean implements Bean<Cart> {
     if (cascade) {
       final Cart newModel = await find(id);
       if (newModel != null) {
-        await cartItemBean.removeByCart(
-            newModel.beverages_id, newModel.item_id);
-        await cartItemBean.removeByCart(
-            newModel.beverages_id, newModel.item_id);
+        await cartItemBean
+            .removeByCart_forbeverages_fkey(newModel.beverages_id);
+        await cartItemBean.removeByCart_foritem_fkey(newModel.item_id);
       }
     }
     final Remove remove = remover.where(this.id.eq(id));
@@ -262,11 +278,11 @@ abstract class _CartBean implements Bean<Cart> {
   }
 
   Future<Cart> preload(Cart model, {bool cascade = false}) async {
-    model.beverages = await cartItemBean.findByCart(
-        model.beverages_id, model.item_id,
-        preload: cascade, cascade: cascade);
-    model.item = await cartItemBean.findByCart(
-        model.beverages_id, model.item_id,
+    model.beverages = await cartItemBean.findByCart_forbeverages_fkey(
+        model.beverages_id,
+        preload: cascade,
+        cascade: cascade);
+    model.item = await cartItemBean.findByCart_foritem_fkey(model.item_id,
         preload: cascade, cascade: cascade);
     return model;
   }
@@ -276,17 +292,17 @@ abstract class _CartBean implements Bean<Cart> {
     models.forEach((Cart model) => model.beverages ??= []);
     await OneToXHelper.preloadAll<Cart, CartItem>(
         models,
-        (Cart model) => [model.beverages_id, model.item_id],
-        cartItemBean.findByCartList,
-        (CartItem model) => [model.cartBeveragesId, model.cartItemId],
+        (Cart model) => [model.beverages_id],
+        cartItemBean.findByCartList_forbeverages_fkey,
+        (CartItem model) => [model.cartBeveragesId],
         (Cart model, CartItem child) =>
             model.beverages = List.from(model.beverages)..add(child),
         cascade: cascade);
     await OneToXHelper.preloadAll<Cart, CartItem>(
         models,
-        (Cart model) => [model.beverages_id, model.item_id],
-        cartItemBean.findByCartList,
-        (CartItem model) => [model.cartBeveragesId, model.cartItemId],
+        (Cart model) => [model.item_id],
+        cartItemBean.findByCartList_foritem_fkey,
+        (CartItem model) => [model.cartItemId],
         (Cart model, CartItem child) => model.item = child,
         cascade: cascade);
     return models;

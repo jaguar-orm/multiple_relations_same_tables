@@ -80,18 +80,34 @@ abstract class _CartItemBean implements Bean<CartItem> {
 
   Future<void> createTable({bool ifNotExists = false}) async {
     final st = Sql.create(tableName, ifNotExists: ifNotExists);
-    st.addInt(id.name, primary: true, isNullable: false);
-    st.addInt(amount.name, isNullable: true);
-    st.addStr(product.name, isNullable: true);
-    st.addInt(quantity.name, isNullable: true);
-    st.addInt(cartBeveragesId.name,
-        foreignTable: cartBean.tableName,
-        foreignCol: 'beverages_id',
-        isNullable: true);
-    st.addInt(cartItemId.name,
-        foreignTable: cartBean.tableName,
-        foreignCol: 'item_id',
-        isNullable: true);
+    st.addByType(
+      id.name,
+      Int(),
+      isPrimary: true,
+    );
+    st.addByType(
+      amount.name,
+      Int(),
+    );
+    st.addByType(
+      product.name,
+      Str(),
+    );
+    st.addByType(
+      quantity.name,
+      Int(),
+    );
+    st.addByType(
+      cartBeveragesId.name,
+      Int(),
+      foreign: References(cartBean.tableName, "beverages_id",
+          name: "beverages_fkey"),
+    );
+    st.addByType(
+      cartItemId.name,
+      Int(),
+      foreign: References(cartBean.tableName, "item_id", name: "item_fkey"),
+    );
     return adapter.createTable(st);
   }
 
@@ -142,9 +158,9 @@ abstract class _CartItemBean implements Bean<CartItem> {
       bool associate = false,
       Set<String> only,
       bool onlyNonNull = false}) async {
-    final Update update = updater
-        .where(this.id.eq(model.id))
-        .setMany(toSetColumns(model, only: only, onlyNonNull: onlyNonNull));
+    final Update update = updater.where(this.id.eq(model.id)).setMany(
+        toSetColumns(model,
+            only: only, onlyNonNull: onlyNonNull, update: true));
     return adapter.update(update);
   }
 
@@ -154,8 +170,9 @@ abstract class _CartItemBean implements Bean<CartItem> {
     final List<Expression> where = [];
     for (var i = 0; i < models.length; ++i) {
       var model = models[i];
-      data.add(
-          toSetColumns(model, only: only, onlyNonNull: onlyNonNull).toList());
+      data.add(toSetColumns(model,
+              only: only, onlyNonNull: onlyNonNull, update: true)
+          .toList());
       where.add(this.id.eq(model.id));
     }
     final UpdateMany update = updaters.addAll(data, where);
@@ -184,35 +201,55 @@ abstract class _CartItemBean implements Bean<CartItem> {
     return adapter.remove(remove);
   }
 
-  Future<List<CartItem>> findByCart(int cartBeveragesId, int cartItemId,
+  Future<List<CartItem>> findByCart_forbeverages_fkey(int cartBeveragesId,
       {bool preload = false, bool cascade = false}) async {
-    final Find find = finder
-        .where(this.cartBeveragesId.eq(cartBeveragesId))
-        .where(this.cartItemId.eq(cartItemId));
+    final Find find = finder.where(this.cartBeveragesId.eq(cartBeveragesId));
     return findMany(find);
   }
 
-  Future<List<CartItem>> findByCartList(List<Cart> models,
+  Future<List<CartItem>> findByCartList_forbeverages_fkey(List<Cart> models,
       {bool preload = false, bool cascade = false}) async {
 // Return if models is empty. If this is not done, all the records will be returned!
     if (models == null || models.isEmpty) return [];
     final Find find = finder;
     for (Cart model in models) {
-      find.or(this.cartBeveragesId.eq(model.beverages_id) &
-          this.cartItemId.eq(model.item_id));
+      find.or(this.cartBeveragesId.eq(model.beverages_id));
     }
     return findMany(find);
   }
 
-  Future<int> removeByCart(int cartBeveragesId, int cartItemId) async {
-    final Remove rm = remover
-        .where(this.cartBeveragesId.eq(cartBeveragesId))
-        .where(this.cartItemId.eq(cartItemId));
+  Future<int> removeByCart_forbeverages_fkey(int cartBeveragesId) async {
+    final Remove rm = remover.where(this.cartBeveragesId.eq(cartBeveragesId));
     return await adapter.remove(rm);
   }
 
-  void associateCart(CartItem child, Cart parent) {
+  void associateCart_forbeverages_fkey(CartItem child, Cart parent) {
     child.cartBeveragesId = parent.beverages_id;
+  }
+
+  Future<CartItem> findByCart_foritem_fkey(int cartItemId,
+      {bool preload = false, bool cascade = false}) async {
+    final Find find = finder.where(this.cartItemId.eq(cartItemId));
+    return findOne(find);
+  }
+
+  Future<List<CartItem>> findByCartList_foritem_fkey(List<Cart> models,
+      {bool preload = false, bool cascade = false}) async {
+// Return if models is empty. If this is not done, all the records will be returned!
+    if (models == null || models.isEmpty) return [];
+    final Find find = finder;
+    for (Cart model in models) {
+      find.or(this.cartItemId.eq(model.item_id));
+    }
+    return findMany(find);
+  }
+
+  Future<int> removeByCart_foritem_fkey(int cartItemId) async {
+    final Remove rm = remover.where(this.cartItemId.eq(cartItemId));
+    return await adapter.remove(rm);
+  }
+
+  void associateCart_foritem_fkey(CartItem child, Cart parent) {
     child.cartItemId = parent.item_id;
   }
 
